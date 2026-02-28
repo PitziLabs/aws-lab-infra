@@ -73,13 +73,27 @@
 
 | Item | Value |
 |------|-------|
-| ECR repo name | _TBD_ |
-| ECR repo URI | _TBD_ |
-| ECS cluster name | _TBD_ |
-| ECS service name | _TBD_ |
-| ALB DNS name | _TBD_ |
-| ACM certificate ARN | _TBD_ |
-| Route 53 hosted zone ID | _TBD_ |
+| ECR repo name | aws-lab-dev-app |
+| ECR repo URI | 365184644049.dkr.ecr.us-east-1.amazonaws.com/aws-lab-dev-app |
+| ECS cluster name | aws-lab-dev-cluster |
+| ECS service name | aws-lab-dev-app |
+| ECS task definition family | aws-lab-dev-app |
+| ECS task CPU / Memory | 256 / 512 (0.25 vCPU, 512 MiB) |
+| ECS desired count | 2 (one per AZ) |
+| Container port | 8080 |
+| Container image | nginx:latest (custom config for port 8080) |
+| ALB name | aws-lab-dev-alb |
+| ALB DNS name | aws-lab-dev-alb-1683080614.us-east-1.elb.amazonaws.com |
+| ALB security group | sg-01efcdea06926db65 |
+| Target group name | aws-lab-dev-app-tg |
+| Target group ARN | arn:aws:elasticloadbalancing:us-east-1:365184644049:targetgroup/aws-lab-dev-app-tg/cf6ad19768f77e61 |
+| ACM certificate ARN | arn:aws:acm:us-east-1:365184644049:certificate/d93358e2-09d8-4363-b006-4e987de69258 |
+| Route 53 hosted zone ID | Z0043272378EN4FXXRUG1 |
+| Route 53 nameservers | ns-444.awsdns-55.com, ns-953.awsdns-55.net, ns-1155.awsdns-16.org, ns-1999.awsdns-57.co.uk |
+| Domain name | hellavisible.net |
+| Domain registrar | Squarespace (nameservers delegated to Route 53) |
+| CloudWatch log group | /ecs/aws-lab-dev-app |
+| ECS auto-scaling | Not yet configured (Phase 3d) |
 
 ---
 
@@ -135,6 +149,14 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 8 | Security groups as standalone module | Separation of concerns: VPC = network plumbing, SGs = access policy. Cleaner output wiring to consuming modules in Phases 3-4. | 2026-02-28 |
 | 9 | Newer per-rule SG resources over legacy inline/aws_security_group_rule | aws_vpc_security_group_ingress_rule is the recommended path forward; older resources in maintenance mode. | 2026-02-28 |
 | 10 | Hybrid module structure for Phase 2 (kms/, secrets/, iam/, security-groups/) | KMS + Secrets Manager tightly coupled but separate from IAM roles and security groups. Each module has a clear contract and output surface. | 2026-02-28 |
+| 11 | Mutable image tags in ECR for dev | Allows pushing to `latest` repeatedly without errors. Would use IMMUTABLE in production to prevent overwriting deployed tags. | 2026-02-28 |
+| 12 | DNS + ACM in single module | ACM DNS validation creates records in Route 53; tightly coupled. Separating them creates circular dependency headaches. | 2026-02-28 |
+| 13 | Boolean `create_alb_alias` over conditional count on ALB DNS name | Terraform `count` can't depend on values unknown at plan time. Explicit boolean is known at plan time, avoids the "known after apply" error. | 2026-02-28 |
+| 14 | TLS 1.2+ minimum (ELBSecurityPolicy-TLS13-1-2-2021-06) | AWS recommended policy. TLS 1.0/1.1 have known vulnerabilities. Only downside is dropping very old clients, acceptable for lab. | 2026-02-28 |
+| 15 | ECS lifecycle ignore_changes for task_definition and desired_count | CI/CD updates task definitions, auto-scaling changes desired count. Without ignore_changes, terraform apply would revert these external changes. | 2026-02-28 |
+| 16 | Custom nginx image for port 8080 | Stock nginx listens on 80; security groups and ALB target group expect 8080. Custom Dockerfile + nginx.conf aligns the port contract across all modules. | 2026-02-28 |
+| 17 | Fargate target_type = "ip" | Required for Fargate. Each task gets its own ENI with a private IP; ALB routes directly to task IPs rather than EC2 instance IDs. | 2026-02-28 |
+| 18 | hellavisible.net full domain delegation to Route 53 | Simpler than subdomain delegation. NS records updated at Squarespace to point to Route 53. | 2026-02-28 |
 
 ---
 
@@ -144,6 +166,7 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 |------|-----------------|-------|
 | 2026-02-27 | ~$65/mo | Phase 1 only: 2 NAT Gateways + 2 EIPs. `terraform destroy` when idle. |
 | 2026-02-28 | ~$66/mo | Phase 2 adds: KMS key ($1/mo), Secrets Manager ($0.40/mo). IAM and SGs are free. |
+| 2026-02-28 | ~$112/mo | Phase 3 adds: ALB (~$20/mo), Route 53 hosted zone ($0.50/mo), ECS Fargate 2x 0.25vCPU/512MiB (~$25/mo). ACM certs are free. ECR storage negligible. |
 
 ---
 
@@ -154,7 +177,7 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 0 — Foundation & Tooling | Complete | 2026-02-27 | 2026-02-27 |
 | 1 — Networking | Complete | 2026-02-27 | 2026-02-27 |
 | 2 — Security | Complete | 2026-02-28 | 2026-02-28 |
-| 3 — Compute & Containers | Not Started | | |
+| 3 — Compute & Containers | In Progress | 2026-02-28 | |
 | 4 — Data Layer | Not Started | | |
 | 5 — Observability | Not Started | | |
 | 6 — CI/CD | Not Started | | |
@@ -164,16 +187,39 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 
 ## Terraform Module Structure (as of Phase 2)
 
+
 ```
 modules/
 ├── vpc/              # Phase 1: VPC, subnets, IGW, NAT, route tables, flow logs
 ├── kms/              # Phase 2: Customer-managed encryption key
 ├── secrets/          # Phase 2: Secrets Manager (db credentials pattern)
 ├── iam/              # Phase 2: ECS roles, GitHub OIDC provider + role
-└── security-groups/  # Phase 2: ALB → App → RDS/Redis security group chain
+├── security-groups/  # Phase 2: ALB → App → RDS/Redis security group chain
+├── ecr/              # Phase 3: Container image registry with lifecycle policy
+├── dns/              # Phase 3: Route 53 hosted zone, ACM cert, ALB alias record
+├── alb/              # Phase 3: Application Load Balancer, listeners, target group
+└── ecs/              # Phase 3: Fargate cluster, task definition, service
 ```
 
 ---
+
+
+## Manual Bootstrap Steps (Non-IaC Prerequisites)
+
+_These steps cannot be automated with Terraform and must be performed manually when setting up the environment from scratch._
+
+| Step | When Needed | Command / Action | Idempotent? |
+|------|-------------|-----------------|-------------|
+| AWS account setup + MFA | Initial setup only | AWS Console | Yes |
+| Install CLI tools (terraform, aws, docker, kubectl, git) | Initial setup only | Package managers | Yes |
+| Bootstrap Terraform backend (S3 + DynamoDB) | Initial setup only | bootstrap script / AWS CLI | Yes |
+| Add user to docker group | After OS reinstall | `sudo usermod -aG docker $USER` + restart terminal | Yes |
+| Authenticate Docker to ECR | Every 12 hours | `aws ecr get-login-password ... \| docker login ...` | Yes |
+| Build and push container image to ECR | After ECR repo creation or image changes | `docker build` + `docker push` | Yes |
+| Update nameservers at Squarespace | After Route 53 hosted zone creation (or recreation) | Squarespace domain settings → custom NS | Only needed when zone NS records change |
+| Restore Secrets Manager secret after destroy | Every `terraform apply` within 7 days of destroy | `aws secretsmanager restore-secret` + `terraform import` | Yes |
+| Restore KMS key after destroy | Every `terraform apply` within 30 days of destroy | `aws kms cancel-key-deletion` + `aws kms enable-key` (+ import if needed) | Yes |
+
 
 ## Operations Notes
 
@@ -184,6 +230,13 @@ _Operational knowledge for day-to-day work with this environment._
 | **Daily teardown** | `terraform destroy` when idle to save ~$2.15/day (NAT Gateways). `terraform apply` recreates everything identically from code. |
 | **Secrets Manager recovery window** | Secret has `recovery_window_in_days = 7`. After `terraform destroy`, the secret name is reserved for 7 days. Next `terraform apply` restores the pending-deletion secret — this is normal. If you hit "already scheduled for deletion" errors, either wait out the window or temporarily set recovery window to `0` for immediate deletion. Only an issue because we're using placeholder values; would not do this with real credentials. |
 | **KMS key deletion** | KMS key has `deletion_window_in_days = 30`. On destroy, Terraform schedules deletion (doesn't delete immediately). On next apply, it cancels the scheduled deletion and restores the key. No data loss, no new key ID needed. |
+| **ECR authentication** | `aws ecr get-login-password --region us-east-1 --profile aws-lab \| docker login --username AWS --password-stdin 365184644049.dkr.ecr.us-east-1.amazonaws.com` — Token valid for 12 hours. Required before docker push/pull to ECR. |
+| **Push image to ECR** | `docker build -t 365184644049.dkr.ecr.us-east-1.amazonaws.com/aws-lab-dev-app:latest .` then `docker push ...`. Build from `app/` directory. |
+| **Squarespace NS delegation** | One-time manual step: In Squarespace domain settings, set custom nameservers to the 4 Route 53 NS values. Check propagation with `dig hellavisible.net NS +short`. |
+| **ACM cert validation wait** | `terraform apply` will hang at `aws_acm_certificate_validation` until DNS propagation completes and ACM verifies the CNAME records. Can take 5-45 minutes. Safe to Ctrl+C and re-apply later. |
+| **Docker group on ChromeOS** | User must be in `docker` group: `sudo usermod -aG docker $USER`. Requires terminal restart (or `newgrp docker`) to take effect. |
+| **ECS task startup time** | After apply, tasks take ~60-90 seconds to pull image, start, and pass 3 consecutive health checks (30s interval). 503 from ALB is expected during this window. |
+| **Route 53 hosted zone on destroy** | Hosted zone is not free to recreate — new zone gets new NS records, requiring another Squarespace nameserver update. Consider whether to exclude from `terraform destroy` in daily teardown, or accept the re-delegation step. |
 
 ---
 
@@ -194,3 +247,9 @@ _Things that bit us and how we fixed them._
 | Issue | Resolution | Date |
 |-------|-----------|------|
 | DynamoDB CreateTable AccessDenied on cpitzi-iac | User only had S3 + EC2 policies. Attached AdministratorAccess via root console. | 2026-02-27 |
+| Secrets Manager "already scheduled for deletion" on apply after destroy | Secret has 7-day recovery window. Restore with `aws secretsmanager restore-secret --secret-id <name> --profile aws-lab`, then `terraform import module.secrets.aws_secretsmanager_secret.db_credentials <name>` to sync state, then re-apply. | 2026-02-28 |
+| KMS "pending deletion" causing Secrets Manager DecryptionFailure | Cascading dependency: secret encrypted with KMS key that's also pending deletion. Fix KMS first: `aws kms cancel-key-deletion --key-id <id> --profile aws-lab` then `aws kms enable-key --key-id <id> --profile aws-lab`. If KMS not in state, import it too. Then re-apply. | 2026-02-28 |
+| Full resurrection sequence after `terraform destroy` with delayed-deletion resources | Order matters: (1) cancel KMS key deletion + enable, (2) restore Secrets Manager secret, (3) import any resources missing from state (`terraform import`), (4) `terraform apply`. The dependency chain runs in reverse on the way back up. | 2026-02-28 |
+| Terraform "count depends on resource attributes that cannot be determined until apply" | Can't use `count` with a value that's `known after apply`. Replace with a boolean variable that's set to a literal value (`true`/`false`) in the module call. Boolean is known at plan time. | 2026-02-28 |
+| Docker "permission denied" on /var/run/docker.sock | User not in docker group. `sudo usermod -aG docker $USER` then restart terminal or `newgrp docker`. | 2026-02-28 |
+| 503 from ALB immediately after ECS deploy | Normal — tasks need ~90 seconds to pull image, start, and pass 3 health checks. Wait and retry. Check target health with `aws elbv2 describe-target-health`. | 2026-02-28 |
