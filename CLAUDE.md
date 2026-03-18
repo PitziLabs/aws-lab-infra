@@ -29,6 +29,13 @@ terraform fmt -check -recursive
 
 # View outputs
 terraform output
+
+# Push container image to ECR
+aws ecr get-login-password --region us-east-1 --profile aws-lab | \
+  docker login --username AWS --password-stdin $(terraform output -raw ecr_repository_url)
+docker build -t my-app ./app
+docker tag my-app:latest $(terraform output -raw ecr_repository_url):latest
+docker push $(terraform output -raw ecr_repository_url):latest
 ```
 
 All Terraform commands run from `environments/dev/` (the only environment entry point currently).
@@ -43,6 +50,19 @@ All Terraform commands run from `environments/dev/` (the only environment entry 
 | AWS profile | aws-lab |
 | Domain | hellavisible.net |
 | GitHub org/repo | cpitzi/aws-lab-infra |
+| State bucket | aws-lab-tfstate-365184644049 |
+| Lock table | aws-lab-tfstate-lock |
+| AZs | us-east-1a, us-east-1b |
+
+## Network Layout
+
+| Tier | Subnets | CIDRs | Purpose |
+|------|---------|-------|---------|
+| Public | 2 | 10.0.1.0/24, 10.0.2.0/24 | ALB, NAT Gateways |
+| App | 2 | 10.0.10.0/24, 10.0.11.0/24 | ECS Fargate tasks (private) |
+| Data | 2 | 10.0.20.0/24, 10.0.21.0/24 | RDS, ElastiCache (private) |
+
+Each AZ has its own NAT Gateway.
 
 ## Module Dependency Graph
 
@@ -86,7 +106,9 @@ DNS ←──→ ALB (certificate ↔ alias record)
 
 - `environments/dev/main.tf` — how all modules connect (the orchestration layer)
 - `environments/dev/outputs.tf` — what each module exposes
+- `environments/dev/backend.tf` — remote state configuration (S3 + DynamoDB)
 - `modules/*/variables.tf` — what each module accepts
+- `app/` — container application: Astro static site built with Node, served by Nginx on port 8080 (health check at `/health`)
 
 ## Project Phases
 
