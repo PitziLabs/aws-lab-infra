@@ -3,12 +3,11 @@
 Convert ice_cream_book recipe markdown files into Astro-compatible
 content files with YAML frontmatter.
 
-Reads from: ../ice_cream_book/recipes/*.md
-Writes to:  src/content/recipes/*.md
+Recipe source is determined by:
+  1. RECIPE_SOURCE environment variable (used in CI/CD)
+  2. Fallback: ../ice_cream_book/recipes/ (local dev)
 
-Parses the inline metadata (title, subtitle, difficulty, tier, time)
-from the existing markdown format and generates proper YAML frontmatter
-that Astro's content collections can consume.
+Writes to: src/content/recipes/*.md
 """
 
 import re
@@ -16,7 +15,13 @@ import os
 import sys
 from pathlib import Path
 
-REPO_RECIPES = Path(__file__).parent.parent / "ice_cream_book" / "recipes"
+# Accept recipe source from env var (CI) or default to relative path (local)
+RECIPE_SOURCE = os.environ.get("RECIPE_SOURCE")
+if RECIPE_SOURCE:
+    REPO_RECIPES = Path(RECIPE_SOURCE)
+else:
+    REPO_RECIPES = Path(__file__).parent.parent / "ice_cream_book" / "recipes"
+
 OUTPUT_DIR = Path(__file__).parent / "src" / "content" / "recipes"
 
 TIER_MAP = {
@@ -44,7 +49,7 @@ def parse_recipe(filepath):
         "recipe_number": 0,
     }
 
-    # Extract recipe number from filename (e.g., 01_coconut_pandan.md -> 1)
+    # Extract recipe number from filename
     num_match = re.match(r"(\d+)_", filepath.name)
     if num_match:
         metadata["recipe_number"] = int(num_match.group(1))
@@ -66,14 +71,12 @@ def parse_recipe(filepath):
     for line in lines:
         if line.startswith("**Difficulty:**"):
             diff_text = line.replace("**Difficulty:**", "").strip()
-            # Extract tier name
             for tier_name in TIER_MAP:
                 if diff_text.upper().startswith(tier_name):
                     metadata["tier"] = tier_name
                     metadata["tier_order"] = TIER_MAP[tier_name]["order"]
                     metadata["tier_color"] = TIER_MAP[tier_name]["color"]
                     break
-            # Get the full difficulty description (after " - ")
             dash_idx = diff_text.find(" - ")
             if dash_idx >= 0:
                 metadata["difficulty_text"] = diff_text[dash_idx + 3:].strip()
@@ -86,7 +89,6 @@ def parse_recipe(filepath):
             break
 
     # Build the body: everything after the Total Time line
-    # We skip title, subtitle, difficulty, time — those go in frontmatter
     body_started = False
     body_lines = []
     skip_next_blank = False
@@ -105,7 +107,6 @@ def parse_recipe(filepath):
 
     body = "\n".join(body_lines).strip()
 
-    # Remove trailing --- separator if present
     if body.endswith("---"):
         body = body[:-3].rstrip()
 
@@ -114,7 +115,6 @@ def parse_recipe(filepath):
 
 def generate_frontmatter(metadata):
     """Generate YAML frontmatter string."""
-    # Escape any quotes in strings
     def esc(s):
         return s.replace('"', '\\"')
 
@@ -126,7 +126,7 @@ tierOrder: {metadata['tier_order']}
 tierColor: "{metadata['tier_color']}"
 difficultyText: "{esc(metadata['difficulty_text'])}"
 totalTime: "{esc(metadata['total_time'])}"
-recipeSlug: "{metadata['slug']}"
+recipeSlug: "{metadata['recipeSlug']}"
 recipeNumber: {metadata['recipe_number']}
 ---"""
 
@@ -134,12 +134,13 @@ recipeNumber: {metadata['recipe_number']}
 def main():
     if not REPO_RECIPES.exists():
         print(f"Error: Recipe directory not found at {REPO_RECIPES}")
+        print(f"  Set RECIPE_SOURCE env var or ensure ../ice_cream_book/recipes/ exists")
         sys.exit(1)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     recipe_files = sorted(REPO_RECIPES.glob("*.md"))
-    print(f"Found {len(recipe_files)} recipe files")
+    print(f"Found {len(recipe_files)} recipe files in {REPO_RECIPES}")
 
     for filepath in recipe_files:
         metadata, body = parse_recipe(filepath)
