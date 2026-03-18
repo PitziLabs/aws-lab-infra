@@ -1,0 +1,75 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ice-cream-to-fight-over
+  AWS_REGION: us-east-1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ice_cream_site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ice_cream_site
+        run: npm ci
+
+      - name: Sync recipes from repo
+        working-directory: ice_cream_site
+        run: python3 sync_recipes.py
+
+      - name: Build site
+        working-directory: ice_cream_site
+        run: npx astro build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          docker build -f ice_cream_site/Dockerfile -t $REGISTRY/$IMAGE_NAME:latest -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+          docker push $REGISTRY/$IMAGE_NAME:latest
+          docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+      # --------------------------------------------------
+      # DEPLOY STEP — uncomment and customize for your infra
+      # --------------------------------------------------
+      # Option A: ECS (update service to pull new image)
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster ice-cream-cluster \
+      #       --service ice-cream-site \
+      #       --force-new-deployment
+      
+      # Option B: S3 + CloudFront (no container needed)
+      # - name: Deploy to S3
+      #   run: |
+      #     aws s3 sync ice_cream_site/dist/ s3://icecreamtofightover.com --delete
+      #     aws cloudfront create-invalidation \
+      #       --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
+      #       --paths "/*"
