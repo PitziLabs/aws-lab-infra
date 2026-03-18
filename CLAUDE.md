@@ -1,57 +1,10 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
-AWS Lab Infrastructure — a Terraform-based IaC project that builds a production-grade, three-tier AWS environment. Phases 0–3 (networking, encryption, IAM, secrets, compute/containers) are complete. Phases 4–7 (data, observability, CI/CD, security hardening) have placeholder modules.
-
-## Repository Structure
-
-```
-aws-lab-infra/
-├── environments/
-│   └── dev/                    # Development environment (entry point)
-│       ├── backend.tf          # S3 + DynamoDB remote state config
-│       ├── main.tf             # Module orchestration and provider setup
-│       ├── variables.tf        # Environment-level variables
-│       ├── outputs.tf          # Aggregated module outputs
-│       └── .terraform.lock.hcl # Provider lock (AWS 5.100.0)
-├── modules/                    # Reusable Terraform modules
-│   ├── vpc/                    # Three-tier VPC (public/app/data subnets, NAT, flow logs)
-│   ├── kms/                    # Customer-managed encryption key + key policy
-│   ├── secrets/                # Secrets Manager for DB credentials
-│   ├── iam/                    # IAM roles (ECS execution, ECS task, GitHub OIDC)
-│   ├── security-groups/        # Identity-based SG rules (ALB→App→RDS/Redis)
-│   ├── ecr/                    # ECR repository with lifecycle policies
-│   ├── dns/                    # Route 53 hosted zone + ACM certificate (DNS validation)
-│   ├── alb/                    # Internet-facing ALB with HTTPS + HTTP→HTTPS redirect
-│   ├── ecs/                    # ECS Fargate cluster, task definition, service
-│   ├── ecs-autoscaling/        # Application Auto Scaling (CPU + memory target tracking)
-│   ├── rds/                    # [placeholder] PostgreSQL RDS
-│   ├── elasticache/            # [placeholder] Redis ElastiCache
-│   ├── cicd/                   # [placeholder] CI/CD pipelines
-│   ├── monitoring/             # [placeholder] CloudWatch dashboards/alarms
-│   └── security/               # [placeholder] WAF, Shield, GuardDuty
-├── scripts/
-│   └── bootstrap/
-│       └── bootstrap-backend.sh  # One-time S3 + DynamoDB backend setup
-├── docs/
-│   └── decisions/              # Architecture Decision Records (placeholder)
-└── .github/
-    └── workflows/              # GitHub Actions workflows (placeholder)
-```
-
-## Quick Reference
-
-| Item | Value |
-|------|-------|
-| Terraform version | >= 1.0 |
-| AWS provider | ~> 5.0 (locked at 5.100.0) |
-| AWS region | us-east-1 |
-| AWS profile | aws-lab |
-| State bucket | aws-lab-tfstate-{account-id} |
-| Lock table | aws-lab-tfstate-lock |
-| Domain | hellavisible.net |
-| GitHub org/repo | cpitzi/aws-lab-infra |
+AWS Lab Infrastructure — Terraform-based IaC project building a production-grade, three-tier AWS environment. Phases 0–3 (networking, encryption, IAM, secrets, compute/containers) are complete. Phases 4–7 (data, observability, CI/CD, security hardening) have placeholder modules.
 
 ## Common Commands
 
@@ -68,9 +21,28 @@ terraform plan -out=tfplan
 # Apply changes
 terraform apply tfplan
 
+# Validate configuration without accessing remote state
+terraform validate
+
+# Format check
+terraform fmt -check -recursive
+
 # View outputs
 terraform output
 ```
+
+All Terraform commands run from `environments/dev/` (the only environment entry point currently).
+
+## Quick Reference
+
+| Item | Value |
+|------|-------|
+| Terraform version | >= 1.0 |
+| AWS provider | ~> 5.0 (locked at 5.100.0) |
+| AWS region | us-east-1 |
+| AWS profile | aws-lab |
+| Domain | hellavisible.net |
+| GitHub org/repo | cpitzi/aws-lab-infra |
 
 ## Module Dependency Graph
 
@@ -82,115 +54,39 @@ KMS ──┤                              ├──→ ECS ──→ ECS Autosc
       └──→ IAM (bidirectional with KMS)    │
                                            │
 ECR ───────────────────────────────────────┘
-DNS ──→ ALB (certificate_arn)
-ALB ──→ DNS (alb_dns_name, alb_zone_id for alias record)
+DNS ←──→ ALB (certificate ↔ alias record)
 ```
 
-The KMS ↔ IAM relationship is bidirectional: IAM needs the KMS key ARN for decrypt permissions, and the KMS key policy needs IAM role ARNs to grant encrypt/decrypt access.
-
-The DNS ↔ ALB relationship is also bidirectional: DNS provides the ACM certificate to ALB, and ALB provides its DNS name/zone ID back to DNS for the Route 53 alias record.
+**Bidirectional dependencies to watch:**
+- **KMS ↔ IAM**: IAM needs KMS key ARN for decrypt permissions; KMS key policy needs IAM role ARNs to grant access.
+- **DNS ↔ ALB**: DNS provides ACM certificate to ALB; ALB provides its DNS name/zone ID back for the Route 53 alias record.
 
 ## Architecture Conventions
 
-### Naming
-All resources: `{project}-{environment}-{resource-type}` (e.g., `aws-lab-dev-ecs-cluster`, `aws-lab-dev-alb`).
+**Naming**: `{project}-{environment}-{resource-type}` (e.g., `aws-lab-dev-ecs-cluster`).
 
-### Tagging
-Applied via provider `default_tags` in `environments/dev/main.tf`:
-- `Environment`: dev
-- `Project`: aws-lab
-- `ManagedBy`: terraform
+**Tagging**: Applied via provider `default_tags` in `environments/dev/main.tf` (`Environment`, `Project`, `ManagedBy`). Individual resources add a `Name` tag.
 
-Individual resources add a `Name` tag.
+**Module structure**: Every module has exactly `main.tf`, `variables.tf`, `outputs.tf`. Every module accepts `environment` and `project` variables.
 
-### Module Structure
-Each module contains exactly three files:
-- `main.tf` — resource definitions
-- `variables.tf` — input variables with descriptions and defaults
-- `outputs.tf` — exported values for cross-module wiring
+**Security groups**: Rules reference security group IDs (not CIDRs) for Fargate compatibility. Groups are created as empty shells first, then rules are added as separate `aws_security_group_rule` resources to avoid circular references.
 
-### Multi-AZ
-Two availability zones (us-east-1a, us-east-1b) with dedicated NAT Gateway per AZ to avoid cross-AZ bottlenecks and egress costs.
+**`ignore_changes` patterns**:
+- ECS service ignores `task_definition` and `desired_count` so CI/CD and auto-scaling can manage independently.
+- Secrets Manager ignores `secret_string` to prevent Terraform from overwriting manual/automated rotations.
 
-### Three-Tier Networking
-- **Public subnets** (10.0.1.0/24, 10.0.2.0/24): ALB and NAT Gateways only
-- **App subnets** (10.0.10.0/24, 10.0.11.0/24): ECS Fargate tasks (private)
-- **Data subnets** (10.0.20.0/24, 10.0.21.0/24): RDS and ElastiCache (private)
+## Adding a New Module
 
-### Security Group Pattern
-Rules reference security group IDs (not CIDRs) so they remain valid when ECS Fargate tasks get new IPs on each deployment. Groups are created as empty shells first, then rules are added as separate `aws_security_group_rule` resources to avoid circular references.
-
-### IAM Least Privilege
-Three distinct roles with minimal permissions:
-- **ECS Task Execution Role**: ECR pull, CloudWatch logs, Secrets Manager read, KMS decrypt
-- **ECS Task Role**: Only Secrets Manager read + KMS decrypt (expandable for future app needs)
-- **GitHub Actions OIDC Role**: Scoped to specific repo, no long-lived credentials
-
-### KMS Key Policy
-Four-statement structure: root account escape hatch, key admin (no crypto), CloudWatch Logs service principal, conditional service role grants.
-
-### Secrets Manager
-- Secret container and secret version are separate resources
-- `ignore_changes` on `secret_string` prevents Terraform from overwriting manual/automated rotations
-- 7-day recovery window (dev environment)
-- Placeholder values — will be seeded when RDS is created in Phase 4
-
-### ECR
-- Image scanning on push for CVE detection
-- Lifecycle policy retains the last 10 images (configurable)
-- `image_tag_mutability = MUTABLE` for dev convenience (override for prod)
-- `force_delete = true` for easy lab cleanup
-
-### DNS & TLS
-- Route 53 hosted zone for `hellavisible.net` with wildcard SAN (`*.hellavisible.net`)
-- ACM certificate with automated DNS validation (CNAME records)
-- `create_before_destroy` lifecycle on the certificate
-- Optional ALB alias record (bare domain → ALB)
-- Nameservers must be configured at the domain registrar (Squarespace)
-
-### ALB
-- Internet-facing in public subnets
-- HTTPS listener (443) with ACM certificate; HTTP listener (80) redirects to HTTPS
-- Target group uses `target_type = "ip"` for Fargate ENIs
-- Health check on `/` every 30s with 3 healthy/unhealthy thresholds
-- 30s deregistration delay for graceful connection draining
-
-### ECS Fargate
-- Cluster with Container Insights enabled for automatic CPU/memory metrics
-- Task definition: nginx container from ECR, `awsvpc` network mode
-- Service runs desired count (default 2) across app subnets with no public IPs
-- Rolling deployment: 50–200% capacity range
-- `ignore_changes` on `task_definition` and `desired_count` so CI/CD and auto-scaling can manage independently
-- `force_new_deployment = true` triggers deployment on every apply
-- CloudWatch log group with 30-day retention
-
-### ECS Auto-Scaling
-- Application Auto Scaling with target tracking on both CPU and memory
-- Default targets: 70% CPU, 70% memory utilization
-- Task count bounds: 2–6 (configurable)
-- Scale-out cooldown: 60s; scale-in cooldown: 300s (anti-flapping)
-- Both policies evaluated independently; the most aggressive wins
-
-## Development Guidelines
-
-### Adding a New Module
 1. Create `modules/<name>/` with `main.tf`, `variables.tf`, `outputs.tf`
 2. Include `environment` and `project` variables for consistent naming/tagging
-3. Wire it into `environments/dev/main.tf` following the dependency order
+3. Wire it into `environments/dev/main.tf` following the dependency graph order
 4. Export relevant outputs in `environments/dev/outputs.tf`
 
-### Adding a New Environment
-1. Create `environments/<env>/` with the same file structure as `environments/dev/`
-2. Update `backend.tf` to use a different state key (e.g., `env/staging/terraform.tfstate`)
-3. Set appropriate variable defaults in `variables.tf`
+## Key Files for Context
 
-### Sensitive Data
-- Never commit `.tfvars`, `.tfstate`, or credential files (enforced by `.gitignore`)
-- Use Secrets Manager for application secrets, not Terraform variables
-- KMS-encrypt all sensitive resources
-
-### CI/CD Authentication
-GitHub Actions authenticates to AWS via OIDC (no access keys stored as secrets). The trust policy in `modules/iam/main.tf` scopes access to `repo:cpitzi/aws-lab-infra:*`.
+- `environments/dev/main.tf` — how all modules connect (the orchestration layer)
+- `environments/dev/outputs.tf` — what each module exposes
+- `modules/*/variables.tf` — what each module accepts
 
 ## Project Phases
 
@@ -204,11 +100,3 @@ GitHub Actions authenticates to AWS via OIDC (no access keys stored as secrets).
 | 5 | CloudWatch monitoring, alarms | Planned |
 | 6 | GitHub Actions CI/CD workflows | Planned |
 | 7 | WAF, Shield, GuardDuty | Planned |
-
-## Key Files for Context
-
-When working on this repo, these files provide the most context:
-- `environments/dev/main.tf` — how all modules connect
-- `environments/dev/outputs.tf` — what each module exposes
-- `modules/*/variables.tf` — what each module accepts
-- `scripts/bootstrap/bootstrap-backend.sh` — backend initialization
