@@ -95,7 +95,7 @@ resource "aws_lb_listener" "https" {
 # --- HTTP Listener (port 80) ---
 # This listener exists solely to redirect HTTP requests to HTTPS.
 # No traffic is ever forwarded on port 80 — it's a security best practice.
-# Without this, users who type "hellavisible.net" (without https://) would
+# Without this, users who type "icecreamtofightover.com" (without https://) would
 # get a connection refused error instead of being redirected.
 resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.main.arn

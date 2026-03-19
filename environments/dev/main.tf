@@ -85,9 +85,9 @@ module "dns" {
 
   project     = var.project
   environment = var.environment
-  domain_name = "hellavisible.net"
+  domain_name = "icecreamtofightover.com"
 
-  subject_alternative_names = ["*.hellavisible.net"]
+  subject_alternative_names = ["*.icecreamtofightover.com"]
 
   create_alb_alias = true
   alb_dns_name     = module.alb.alb_dns_name

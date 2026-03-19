@@ -48,7 +48,7 @@ All Terraform commands run from `environments/dev/` (the only environment entry 
 | AWS provider | ~> 5.0 (locked at 5.100.0) |
 | AWS region | us-east-1 |
 | AWS profile | aws-lab |
-| Domain | hellavisible.net |
+| Domain | icecreamtofightover.com |
 | GitHub org/repo | cpitzi/aws-lab-infra |
 | State bucket | aws-lab-tfstate-365184644049 |
 | Lock table | aws-lab-tfstate-lock |

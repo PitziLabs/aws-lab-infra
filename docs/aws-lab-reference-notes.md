@@ -90,7 +90,7 @@
 | ACM certificate ARN | arn:aws:acm:us-east-1:365184644049:certificate/d93358e2-09d8-4363-b006-4e987de69258 |
 | Route 53 hosted zone ID | Z0043272378EN4FXXRUG1 |
 | Route 53 nameservers | ns-444.awsdns-55.com, ns-953.awsdns-55.net, ns-1155.awsdns-16.org, ns-1999.awsdns-57.co.uk |
-| Domain name | hellavisible.net |
+| Domain name | icecreamtofightover.com |
 | Domain registrar | Squarespace (nameservers delegated to Route 53) |
 | CloudWatch log group | /ecs/aws-lab-dev-app |
 | ECS auto-scaling | Not yet configured (Phase 3d) |
@@ -156,7 +156,7 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 15 | ECS lifecycle ignore_changes for task_definition and desired_count | CI/CD updates task definitions, auto-scaling changes desired count. Without ignore_changes, terraform apply would revert these external changes. | 2026-02-28 |
 | 16 | Custom nginx image for port 8080 | Stock nginx listens on 80; security groups and ALB target group expect 8080. Custom Dockerfile + nginx.conf aligns the port contract across all modules. | 2026-02-28 |
 | 17 | Fargate target_type = "ip" | Required for Fargate. Each task gets its own ENI with a private IP; ALB routes directly to task IPs rather than EC2 instance IDs. | 2026-02-28 |
-| 18 | hellavisible.net full domain delegation to Route 53 | Simpler than subdomain delegation. NS records updated at Squarespace to point to Route 53. | 2026-02-28 |
+| 18 | icecreamtofightover.com full domain delegation to Route 53 | Simpler than subdomain delegation. NS records updated at Squarespace to point to Route 53. | 2026-02-28 |
 
 ---
 
@@ -232,7 +232,7 @@ _Operational knowledge for day-to-day work with this environment._
 | **KMS key deletion** | KMS key has `deletion_window_in_days = 30`. On destroy, Terraform schedules deletion (doesn't delete immediately). On next apply, it cancels the scheduled deletion and restores the key. No data loss, no new key ID needed. |
 | **ECR authentication** | `aws ecr get-login-password --region us-east-1 --profile aws-lab \| docker login --username AWS --password-stdin 365184644049.dkr.ecr.us-east-1.amazonaws.com` — Token valid for 12 hours. Required before docker push/pull to ECR. |
 | **Push image to ECR** | `docker build -t 365184644049.dkr.ecr.us-east-1.amazonaws.com/aws-lab-dev-app:latest .` then `docker push ...`. Build from `app/` directory. |
-| **Squarespace NS delegation** | One-time manual step: In Squarespace domain settings, set custom nameservers to the 4 Route 53 NS values. Check propagation with `dig hellavisible.net NS +short`. |
+| **Squarespace NS delegation** | One-time manual step: In Squarespace domain settings, set custom nameservers to the 4 Route 53 NS values. Check propagation with `dig icecreamtofightover.com NS +short`. |
 | **ACM cert validation wait** | `terraform apply` will hang at `aws_acm_certificate_validation` until DNS propagation completes and ACM verifies the CNAME records. Can take 5-45 minutes. Safe to Ctrl+C and re-apply later. |
 | **Docker group on ChromeOS** | User must be in `docker` group: `sudo usermod -aG docker $USER`. Requires terminal restart (or `newgrp docker`) to take effect. |
 | **ECS task startup time** | After apply, tasks take ~60-90 seconds to pull image, start, and pass 3 consecutive health checks (30s interval). 503 from ALB is expected during this window. |

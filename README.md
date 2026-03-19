@@ -8,7 +8,7 @@ Production-grade, three-tier AWS environment built entirely with Terraform. Desi
                         Internet
                            │
                       ┌────┴────┐
-                      │ Route 53│  hellavisible.net
+                      │ Route 53│  icecreamtofightover.com
                       └────┬────┘
                            │
                     ┌──────┴──────┐
@@ -161,7 +161,7 @@ State is stored in S3 (versioned, encrypted) with DynamoDB locking to prevent co
 | AWS Profile | `aws-lab` |
 | Project Name | `aws-lab` |
 | Environment | `dev` |
-| Domain | `hellavisible.net` |
+| Domain | `icecreamtofightover.com` |
 | State Bucket | `aws-lab-tfstate-365184644049` |
 | Lock Table | `aws-lab-tfstate-lock` |
 | Availability Zones | `us-east-1a`, `us-east-1b` |
