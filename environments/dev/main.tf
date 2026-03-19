@@ -153,3 +153,14 @@ module "s3" {
   environment = var.environment
   kms_key_arn = module.kms.key_arn
 }
+
+module "elasticache" {
+  source = "../../modules/elasticache"
+
+  project     = var.project
+  environment = var.environment
+
+  data_subnet_ids       = module.vpc.data_subnet_ids
+  redis_security_group_id = module.security_groups.redis_security_group_id
+  kms_key_arn           = module.kms.key_arn
+}

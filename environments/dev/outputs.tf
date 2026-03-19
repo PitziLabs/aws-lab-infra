@@ -127,3 +127,13 @@ output "s3_bucket_arn" {
   description = "S3 general-purpose bucket ARN"
   value       = module.s3.bucket_arn
 }
+
+output "elasticache_primary_endpoint" {
+  description = "ElastiCache Valkey primary endpoint"
+  value       = module.elasticache.primary_endpoint_address
+}
+
+output "elasticache_port" {
+  description = "ElastiCache Valkey port"
+  value       = module.elasticache.port
+}
