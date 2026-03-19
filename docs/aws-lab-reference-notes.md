@@ -101,13 +101,27 @@
 
 | Item | Value |
 |------|-------|
-| RDS instance identifier | _TBD_ |
-| RDS endpoint | _TBD_ |
-| RDS database name | _TBD_ |
-| RDS master username | _TBD_ |
-| S3 bucket name | _TBD_ |
-| ElastiCache cluster ID | _TBD_ |
-| ElastiCache endpoint | _TBD_ |
+| RDS instance identifier | aws-lab-dev-postgres |
+| RDS endpoint | aws-lab-dev-postgres.c458aku0mtw1.us-east-1.rds.amazonaws.com:5432 |
+| RDS address (hostname only) | aws-lab-dev-postgres.c458aku0mtw1.us-east-1.rds.amazonaws.com |
+| RDS port | 5432 |
+| RDS engine | PostgreSQL 16 (db.t4g.micro Graviton) |
+| RDS storage | 20 GiB gp3, autoscale to 100 GiB |
+| RDS Multi-AZ | Yes (synchronous standby) |
+| RDS database name | awslab |
+| RDS master username | dbadmin |
+| RDS master secret ARN | arn:aws:secretsmanager:us-east-1:365184644049:secret:rds!db-804d2817-c2dd-4b02-b2fd-0d8d33303288-sCmPlr |
+| RDS master secret rotation | Automatic, every 7 days (RDS-managed) |
+| RDS security group | sg-0e62923842c97d48b |
+| DB subnet group | aws-lab-dev-db-subnet-group |
+| Parameter group | aws-lab-dev-pg16 |
+| Performance Insights | Enabled (7-day retention, KMS encrypted) |
+| Backup retention | 7 days |
+| Backup window | 03:00–04:00 UTC |
+| Maintenance window | Sun 05:00–06:00 UTC |
+| S3 bucket name | TBD (Phase 4b) |
+| ElastiCache cluster ID | TBD (Phase 4c) |
+| ElastiCache endpoint | TBD (Phase 4c) |
 
 ---
 
@@ -157,6 +171,11 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 16 | Custom nginx image for port 8080 | Stock nginx listens on 80; security groups and ALB target group expect 8080. Custom Dockerfile + nginx.conf aligns the port contract across all modules. | 2026-02-28 |
 | 17 | Fargate target_type = "ip" | Required for Fargate. Each task gets its own ENI with a private IP; ALB routes directly to task IPs rather than EC2 instance IDs. | 2026-02-28 |
 | 18 | icecreamtofightover.com full domain delegation to Route 53 | Simpler than subdomain delegation. NS records updated at Squarespace to point to Route 53. | 2026-02-28 |
+| 19 | RDS-managed master password over traditional Secrets Manager | Auto-rotation every 7 days, no password in Terraform state. Existing Phase 2 secret (aws-lab-dev/db-credentials) retained but unused by RDS. | 2026-03-19 |
+| 20 | db.t4g.micro (Graviton) over db.t3.micro | Same price tier, ~20% better price-performance on ARM. Signals awareness of Graviton ecosystem. | 2026-03-19 |
+| 21 | PostgreSQL 16 major-only version pin | Lets AWS pick latest minor version. Avoids breakage when AWS retires specific minor versions. | 2026-03-19 |
+| 22 | gp3 storage over gp2 | Baseline 3,000 IOPS + 125 MiB/s included free. gp2 at 20 GiB would only get ~100 IOPS. | 2026-03-19 |
+| 23 | IAM rds!* prefix pattern for secret access | Avoids circular dependency (RDS → IAM → RDS). Only RDS-managed secrets use the rds! prefix, so still least-privilege. | 2026-03-19 |
 
 ---
 
@@ -167,6 +186,7 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 2026-02-27 | ~$65/mo | Phase 1 only: 2 NAT Gateways + 2 EIPs. `terraform destroy` when idle. |
 | 2026-02-28 | ~$66/mo | Phase 2 adds: KMS key ($1/mo), Secrets Manager ($0.40/mo). IAM and SGs are free. |
 | 2026-02-28 | ~$112/mo | Phase 3 adds: ALB (~$20/mo), Route 53 hosted zone ($0.50/mo), ECS Fargate 2x 0.25vCPU/512MiB (~$25/mo). ACM certs are free. ECR storage negligible. |
+| 2026-03-19 | ~$143/mo | Phase 4a adds: RDS db.t4g.micro Multi-AZ (~$28/mo), gp3 storage (~$2.30/mo), backups + managed secret (~$0.80/mo). |
 
 ---
 
@@ -177,8 +197,8 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 0 — Foundation & Tooling | Complete | 2026-02-27 | 2026-02-27 |
 | 1 — Networking | Complete | 2026-02-27 | 2026-02-27 |
 | 2 — Security | Complete | 2026-02-28 | 2026-02-28 |
-| 3 — Compute & Containers | In Progress | 2026-02-28 | |
-| 4 — Data Layer | Not Started | | |
+| 3 — Compute & Containers | Complete | 2026-02-28 | 2026-02-28 |
+| 4 — Data Layer | In Progress | 2026-03-19 | |
 | 5 — Observability | Not Started | | |
 | 6 — CI/CD | Not Started | | |
 | 7 — Hardening | Not Started | | |
