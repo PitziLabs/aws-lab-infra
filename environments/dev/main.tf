@@ -160,7 +160,31 @@ module "elasticache" {
   project     = var.project
   environment = var.environment
 
-  data_subnet_ids       = module.vpc.data_subnet_ids
+  data_subnet_ids         = module.vpc.data_subnet_ids
   redis_security_group_id = module.security_groups.redis_security_group_id
-  kms_key_arn           = module.kms.key_arn
+  kms_key_arn             = module.kms.key_arn
+}
+
+# --- Phase 5: Observability ---
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  project     = var.project
+  environment = var.environment
+
+  alert_email = "cpitzi@gmail.com"
+
+  # ECS dimensions
+  ecs_cluster_name = module.ecs.cluster_name
+  ecs_service_name = module.ecs.service_name
+
+  # ALB dimensions
+  alb_arn_suffix         = module.alb.alb_arn_suffix
+  target_group_arn_suffix = module.alb.target_group_arn_suffix
+
+  # RDS dimensions
+  rds_instance_id = module.rds.instance_id
+
+  # ElastiCache dimensions
+  elasticache_replication_group_id = module.elasticache.replication_group_id
 }
