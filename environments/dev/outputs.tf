@@ -96,3 +96,24 @@ output "ecs_service_name" {
   description = "ECS service name"
   value       = module.ecs.service_name
 }
+
+# Phase 4 outputs
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint (hostname:port)"
+  value       = module.rds.endpoint
+}
+
+output "rds_address" {
+  description = "RDS PostgreSQL hostname"
+  value       = module.rds.address
+}
+
+output "rds_db_name" {
+  description = "RDS initial database name"
+  value       = module.rds.db_name
+}
+
+output "rds_master_user_secret_arn" {
+  description = "ARN of the RDS-managed master credentials secret"
+  value       = module.rds.master_user_secret_arn
+}

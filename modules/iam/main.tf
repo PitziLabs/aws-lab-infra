@@ -56,10 +56,15 @@ data "aws_iam_policy_document" "ecs_task_execution_custom" {
     actions = [
       "secretsmanager:GetSecretValue",
     ]
-    resources = [
-      var.db_credentials_secret_arn,
-      "${var.db_credentials_secret_arn}:*"
-    ]
+    resources = concat(
+      [
+        var.db_credentials_secret_arn,
+        "${var.db_credentials_secret_arn}:*",
+      ],
+      var.rds_managed_secret_access ? [
+        "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:rds!*",
+      ] : []
+    )
   }
 
   # Allow decrypting with our KMS key (needed because the secret is
@@ -133,10 +138,15 @@ data "aws_iam_policy_document" "ecs_task_custom" {
     actions = [
       "secretsmanager:GetSecretValue",
     ]
-    resources = [
-      var.db_credentials_secret_arn,
-      "${var.db_credentials_secret_arn}:*"
-    ]
+    resources = concat(
+      [
+        var.db_credentials_secret_arn,
+        "${var.db_credentials_secret_arn}:*",
+      ],
+      var.rds_managed_secret_access ? [
+        "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:rds!*",
+      ] : []
+    )
   }
 
   statement {

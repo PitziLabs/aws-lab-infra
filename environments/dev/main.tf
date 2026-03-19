@@ -64,6 +64,9 @@ module "iam" {
   db_credentials_secret_arn = module.secrets.db_credentials_secret_arn
   github_org                = "cpitzi"
   github_repo               = "aws-lab-infra"
+
+  # Phase 4: grant ECS roles access to RDS-managed secrets
+  rds_managed_secret_access = true
 }
 module "security_groups" {
   source = "../../modules/security-groups"
@@ -129,4 +132,16 @@ module "ecs_autoscaling" {
 
   min_capacity = 2
   max_capacity = 6
+}
+
+# --- Phase 4: Data Layer ---
+module "rds" {
+  source = "../../modules/rds"
+
+  project     = var.project
+  environment = var.environment
+
+  data_subnet_ids       = module.vpc.data_subnet_ids
+  rds_security_group_id = module.security_groups.rds_security_group_id
+  kms_key_arn           = module.kms.key_arn
 }

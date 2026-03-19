@@ -34,6 +34,12 @@ variable "db_credentials_secret_arn" {
 # The trust policy will say "only GitHub Actions running from THIS repo
 # can assume this role." Without this, any GitHub repo could potentially
 # authenticate if they knew the role ARN.
+variable "rds_managed_secret_access" {
+  description = "Grant ECS roles access to RDS-managed secrets (rds!* prefix)"
+  type        = bool
+  default     = false
+}
+
 variable "github_org" {
   description = "GitHub organization or username"
   type        = string
