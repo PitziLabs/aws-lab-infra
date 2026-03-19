@@ -117,3 +117,13 @@ output "rds_master_user_secret_arn" {
   description = "ARN of the RDS-managed master credentials secret"
   value       = module.rds.master_user_secret_arn
 }
+
+output "s3_bucket_id" {
+  description = "S3 general-purpose bucket name"
+  value       = module.s3.bucket_id
+}
+
+output "s3_bucket_arn" {
+  description = "S3 general-purpose bucket ARN"
+  value       = module.s3.bucket_arn
+}

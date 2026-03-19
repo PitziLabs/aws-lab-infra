@@ -145,3 +145,11 @@ module "rds" {
   rds_security_group_id = module.security_groups.rds_security_group_id
   kms_key_arn           = module.kms.key_arn
 }
+
+module "s3" {
+  source = "../../modules/s3"
+
+  project     = var.project
+  environment = var.environment
+  kms_key_arn = module.kms.key_arn
+}
