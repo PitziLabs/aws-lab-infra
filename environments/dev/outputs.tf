@@ -137,3 +137,9 @@ output "elasticache_port" {
   description = "ElastiCache Valkey port"
   value       = module.elasticache.port
 }
+
+# Phase 5 outputs
+output "sns_topic_arn" {
+  description = "SNS alerting topic ARN"
+  value       = module.monitoring.sns_topic_arn
+}
