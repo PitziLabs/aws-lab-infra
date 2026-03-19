@@ -129,10 +129,15 @@
 
 | Item | Value |
 |------|-------|
-| SNS topic ARN | _TBD_ |
-| Notification email | _TBD_ |
-| CloudTrail name | _TBD_ |
-| CloudTrail S3 prefix | _TBD_ |
+| SNS topic name | aws-lab-dev-alerts |
+| SNS topic ARN | arn:aws:sns:us-east-1:365184644049:aws-lab-dev-alerts |
+| Notification email | cpitzi@gmail.com |
+| Email subscription confirmed | Yes (2026-03-19) |
+| CloudWatch alarms (8 total) | ecs-cpu-high, ecs-memory-high, alb-5xx-high, alb-response-slow, rds-cpu-high, rds-storage-low, cache-cpu-high, cache-memory-high |
+| Alarm naming pattern | aws-lab-dev-{service}-{metric} |
+| CloudTrail name | _TBD (Phase 5c)_ |
+| CloudTrail S3 prefix | _TBD (Phase 5c)_ |
+| AWS Config recorder | _TBD (Phase 5d)_ |
 
 ---
 
@@ -176,6 +181,11 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 21 | PostgreSQL 16 major-only version pin | Lets AWS pick latest minor version. Avoids breakage when AWS retires specific minor versions. | 2026-03-19 |
 | 22 | gp3 storage over gp2 | Baseline 3,000 IOPS + 125 MiB/s included free. gp2 at 20 GiB would only get ~100 IOPS. | 2026-03-19 |
 | 23 | IAM rds!* prefix pattern for secret access | Avoids circular dependency (RDS → IAM → RDS). Only RDS-managed secrets use the rds! prefix, so still least-privilege. | 2026-03-19 |
+| 24 | SNS consolidated into monitoring module (not separate) | SNS topic exists solely for alarm delivery in this project. No other consumers justify a standalone module. Reduces wiring in main.tf. | 2026-03-19 |
+| 25 | treat_missing_data = "notBreaching" on ALB alarms | ALB metrics like 5xx counts emit no data points when there are zero errors (rather than emitting "0"). Missing data should not trigger an alarm. | 2026-03-19 |
+| 26 | EngineCPUUtilization over CPUUtilization for ElastiCache | Valkey/Redis is single-threaded. Host CPU can be misleadingly low on multi-vCPU nodes while the engine thread is saturated. EngineCPUUtilization isolates the engine's thread. | 2026-03-19 |
+| 27 | ok_actions on all alarms (not just alarm_actions) | Sends recovery notifications so you know when an issue resolves itself, not just when it starts. Complete operational picture. | 2026-03-19 |
+| 28 | 3 evaluation periods for most alarms | Avoids false positives from brief spikes. Three consecutive breaching periods confirms a real trend before alerting. | 2026-03-19 |
 
 ---
 
@@ -187,6 +197,7 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 2026-02-28 | ~$66/mo | Phase 2 adds: KMS key ($1/mo), Secrets Manager ($0.40/mo). IAM and SGs are free. |
 | 2026-02-28 | ~$112/mo | Phase 3 adds: ALB (~$20/mo), Route 53 hosted zone ($0.50/mo), ECS Fargate 2x 0.25vCPU/512MiB (~$25/mo). ACM certs are free. ECR storage negligible. |
 | 2026-03-19 | ~$143/mo | Phase 4a adds: RDS db.t4g.micro Multi-AZ (~$28/mo), gp3 storage (~$2.30/mo), backups + managed secret (~$0.80/mo). |
+| 2026-03-19 | ~$144/mo | Phase 5a+5b adds: 8 CloudWatch alarms (~$0.80/mo). SNS email delivery free. |
 
 ---
 
@@ -198,15 +209,14 @@ _Quick-reference for architectural decisions made along the way. Full ADRs live 
 | 1 — Networking | Complete | 2026-02-27 | 2026-02-27 |
 | 2 — Security | Complete | 2026-02-28 | 2026-02-28 |
 | 3 — Compute & Containers | Complete | 2026-02-28 | 2026-02-28 |
-| 4 — Data Layer | In Progress | 2026-03-19 | |
-| 5 — Observability | Not Started | | |
+| 4 — Data Layer | Complete | 2026-03-19 | 2026-03-19 |
+| 5 — Observability | In Progress | 2026-03-19 | |
 | 6 — CI/CD | Not Started | | |
 | 7 — Hardening | Not Started | | |
 
 ---
 
-## Terraform Module Structure (as of Phase 2)
-
+## Terraform Module Structure
 
 ```
 modules/
@@ -218,7 +228,12 @@ modules/
 ├── ecr/              # Phase 3: Container image registry with lifecycle policy
 ├── dns/              # Phase 3: Route 53 hosted zone, ACM cert, ALB alias record
 ├── alb/              # Phase 3: Application Load Balancer, listeners, target group
-└── ecs/              # Phase 3: Fargate cluster, task definition, service
+├── ecs/              # Phase 3: Fargate cluster, task definition, service
+├── ecs-autoscaling/  # Phase 3: CPU + memory target-tracking scaling policies
+├── rds/              # Phase 4: PostgreSQL Multi-AZ with RDS-managed credentials
+├── s3/               # Phase 4: General-purpose bucket with KMS encryption
+├── elasticache/      # Phase 4: Valkey replication group with encryption
+└── monitoring/       # Phase 5: SNS topic + 8 CloudWatch alarms (ECS, ALB, RDS, ElastiCache)
 ```
 
 ---
@@ -239,6 +254,7 @@ _These steps cannot be automated with Terraform and must be performed manually w
 | Update nameservers at Squarespace | After Route 53 hosted zone creation (or recreation) | Squarespace domain settings → custom NS | Only needed when zone NS records change |
 | Restore Secrets Manager secret after destroy | Every `terraform apply` within 7 days of destroy | `aws secretsmanager restore-secret` + `terraform import` | Yes |
 | Restore KMS key after destroy | Every `terraform apply` within 30 days of destroy | `aws kms cancel-key-deletion` + `aws kms enable-key` (+ import if needed) | Yes |
+| Confirm SNS email subscription | After first `terraform apply` of monitoring module, or after destroy/recreate | Check cpitzi@gmail.com for AWS confirmation email, click link | Yes (re-subscribing sends a new confirmation) |
 
 
 ## Operations Notes
@@ -257,6 +273,9 @@ _Operational knowledge for day-to-day work with this environment._
 | **Docker group on ChromeOS** | User must be in `docker` group: `sudo usermod -aG docker $USER`. Requires terminal restart (or `newgrp docker`) to take effect. |
 | **ECS task startup time** | After apply, tasks take ~60-90 seconds to pull image, start, and pass 3 consecutive health checks (30s interval). 503 from ALB is expected during this window. |
 | **Route 53 hosted zone on destroy** | Hosted zone is not free to recreate — new zone gets new NS records, requiring another Squarespace nameserver update. Consider whether to exclude from `terraform destroy` in daily teardown, or accept the re-delegation step. |
+| **SNS subscription on recreate** | After `terraform destroy` + `terraform apply`, the SNS email subscription is recreated in "pending confirmation" state. No alarms are delivered until you click the confirmation link in the new email from AWS. Check Gmail immediately after apply. |
+| **Testing alarm pipeline** | `aws cloudwatch set-alarm-state --alarm-name "aws-lab-dev-ecs-cpu-high" --state-value ALARM --state-reason "Test" --profile aws-lab` — Forces alarm to ALARM state. Auto-recovers on next evaluation period. Useful for validating the SNS→email chain. |
+| **INSUFFICIENT_DATA alarms** | Normal after fresh deploy. Alarms need 1–3 evaluation periods of metric data before transitioning to OK. RDS and ElastiCache alarms may take 5–15 minutes to settle. |
 
 ---
 
