@@ -35,3 +35,35 @@ variable "log_expiration_days" {
   type        = number
   default     = 90
 }
+
+# --- Service access (Phase 5) ---
+
+variable "aws_account_id" {
+  description = "AWS account ID (used in service access bucket policy conditions)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_cloudtrail_access" {
+  description = "Grant CloudTrail service permission to deliver logs to this bucket"
+  type        = bool
+  default     = false
+}
+
+variable "cloudtrail_key_prefix" {
+  description = "S3 key prefix for CloudTrail log delivery"
+  type        = string
+  default     = "cloudtrail"
+}
+
+variable "enable_config_access" {
+  description = "Grant AWS Config service permission to deliver snapshots to this bucket"
+  type        = bool
+  default     = false
+}
+
+variable "config_key_prefix" {
+  description = "S3 key prefix for AWS Config delivery"
+  type        = string
+  default     = "config"
+}

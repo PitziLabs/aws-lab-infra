@@ -152,6 +152,13 @@ module "s3" {
   project     = var.project
   environment = var.environment
   kms_key_arn = module.kms.key_arn
+
+  # Phase 5: Service access for log delivery
+  aws_account_id          = data.aws_caller_identity.current.account_id
+  enable_cloudtrail_access = true
+  cloudtrail_key_prefix   = "cloudtrail"
+  enable_config_access    = true
+  config_key_prefix       = "config"
 }
 
 module "elasticache" {
@@ -196,7 +203,21 @@ module "cloudtrail" {
   environment = var.environment
 
   s3_bucket_name = module.s3.bucket_id
-  s3_bucket_arn  = module.s3.bucket_arn
   kms_key_arn    = module.kms.key_arn
-  aws_account_id = data.aws_caller_identity.current.account_id
+}
+
+module "aws_config" {
+  source = "../../modules/aws-config"
+
+  project     = var.project
+  environment = var.environment
+
+  s3_bucket_name = module.s3.bucket_id
+  s3_key_prefix  = "config"
+  sns_topic_arn  = module.monitoring.sns_topic_arn
+}
+
+moved {
+  from = module.cloudtrail.aws_s3_bucket_policy.cloudtrail
+  to   = module.s3.aws_s3_bucket_policy.this[0]
 }

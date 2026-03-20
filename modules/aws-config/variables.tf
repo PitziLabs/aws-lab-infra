@@ -1,4 +1,4 @@
-# modules/cloudtrail/variables.tf
+# modules/aws-config/variables.tf
 
 variable "project" {
   description = "Project name for resource naming"
@@ -11,17 +11,18 @@ variable "environment" {
 }
 
 variable "s3_bucket_name" {
-  description = "Name of the S3 bucket for CloudTrail log delivery"
+  description = "S3 bucket name for Config delivery channel"
   type        = string
 }
 
 variable "s3_key_prefix" {
-  description = "S3 key prefix for CloudTrail log files"
+  description = "S3 key prefix for Config delivery"
   type        = string
-  default     = "cloudtrail"
+  default     = "config"
 }
 
-variable "kms_key_arn" {
-  description = "ARN of the KMS key for encrypting CloudTrail log files"
+variable "sns_topic_arn" {
+  description = "SNS topic ARN for Config notifications (optional)"
   type        = string
+  default     = ""
 }

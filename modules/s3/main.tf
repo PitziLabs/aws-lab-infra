@@ -114,3 +114,106 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     }
   }
 }
+
+# --- Service access bucket policy ---
+# Conditionally created when CloudTrail and/or Config need write access.
+# Both services require explicit S3 bucket policies because they operate
+# as service principals, not IAM roles you control.
+#
+# This policy lives in the S3 module (not in the consumer modules) because
+# AWS only allows ONE bucket policy per bucket. If CloudTrail and Config
+# each tried to create their own aws_s3_bucket_policy, the last one would
+# overwrite the first. Centralizing here avoids that conflict.
+
+locals {
+  # Build the policy only when at least one service needs access
+  needs_bucket_policy = var.enable_cloudtrail_access || var.enable_config_access
+}
+
+data "aws_iam_policy_document" "service_access" {
+  count = local.needs_bucket_policy ? 1 : 0
+
+  # --- CloudTrail statements ---
+  dynamic "statement" {
+    for_each = var.enable_cloudtrail_access ? [1] : []
+    content {
+      sid    = "AWSCloudTrailAclCheck"
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["cloudtrail.amazonaws.com"]
+      }
+
+      actions   = ["s3:GetBucketAcl"]
+      resources = [aws_s3_bucket.this.arn]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_cloudtrail_access ? [1] : []
+    content {
+      sid    = "AWSCloudTrailWrite"
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["cloudtrail.amazonaws.com"]
+      }
+
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.this.arn}/${var.cloudtrail_key_prefix}/AWSLogs/${var.aws_account_id}/*"]
+
+      condition {
+        test     = "StringEquals"
+        variable = "s3:x-amz-acl"
+        values   = ["bucket-owner-full-control"]
+      }
+    }
+  }
+
+  # --- AWS Config statements ---
+  dynamic "statement" {
+    for_each = var.enable_config_access ? [1] : []
+    content {
+      sid    = "AWSConfigAclCheck"
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+      }
+
+      actions   = ["s3:GetBucketAcl"]
+      resources = [aws_s3_bucket.this.arn]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_config_access ? [1] : []
+    content {
+      sid    = "AWSConfigWrite"
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+      }
+
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.this.arn}/${var.config_key_prefix}/AWSLogs/${var.aws_account_id}/Config/*"]
+
+      condition {
+        test     = "StringEquals"
+        variable = "s3:x-amz-acl"
+        values   = ["bucket-owner-full-control"]
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "this" {
+  count  = local.needs_bucket_policy ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+  policy = data.aws_iam_policy_document.service_access[0].json
+}

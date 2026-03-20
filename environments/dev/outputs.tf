@@ -148,3 +148,8 @@ output "cloudtrail_arn" {
   description = "CloudTrail trail ARN"
   value       = module.cloudtrail.trail_arn
 }
+
+output "config_recorder_name" {
+  description = "AWS Config recorder name"
+  value       = module.aws_config.recorder_name
+}
