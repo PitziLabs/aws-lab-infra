@@ -2,16 +2,26 @@
 #
 # Build & Deploy: Ice Cream Cookbook → ECR → ECS Fargate
 #
-# Triggers on push to main. Authenticates via OIDC (no stored secrets).
-# Builds the Astro static site, packages it in an nginx container,
-# pushes to ECR, and tells ECS to roll out a new deployment.
+# Triggers:
+#   1. Push to main that changes app code or this workflow
+#   2. repository_dispatch from ice_cream_book (recipe content changed)
+#   3. Manual workflow_dispatch from GitHub UI
+#
+# Authenticates via OIDC (no stored secrets). Builds the Astro static
+# site, packages it in an nginx container, pushes to ECR, and tells
+# ECS to roll out a new deployment.
 
 name: Build & Deploy
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # Manual trigger for testing
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy.yml'
+  repository_dispatch:
+    types: [recipe-updated]      # Fired by ice_cream_book when recipes change on main
+  workflow_dispatch: {}           # Manual trigger from GitHub UI
 
 permissions:
   id-token: write   # Required for OIDC authentication
@@ -88,7 +98,8 @@ jobs:
             --cluster $ECS_CLUSTER \
             --service $ECS_SERVICE \
             --force-new-deployment \
-            --region $AWS_REGION
+            --region $AWS_REGION \
+            --no-cli-pager
 
       - name: Wait for deployment to stabilize
         run: |
@@ -98,3 +109,8 @@ jobs:
             --services $ECS_SERVICE \
             --region $AWS_REGION
           echo "Deployment complete!"
+
+          echo "### ✅ Deployment complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Site:** [icecreamtofightover.com](https://icecreamtofightover.com)" >> $GITHUB_STEP_SUMMARY
