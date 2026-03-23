@@ -197,3 +197,17 @@ After applying, key outputs are available via `terraform output`:
 - **Module structure**: Every module has exactly `main.tf`, `variables.tf`, `outputs.tf`
 - **No committed secrets**: `.tfvars`, `.tfstate`, and credentials are gitignored
 - **Tagging**: All resources inherit `Environment`, `Project`, `ManagedBy` via provider default tags
+
+## Related
+
+- **[PitziLabs/firewalla-axiom-pipeline](https://github.com/PitziLabs/firewalla-axiom-pipeline)** — Observability pipeline shipping Zeek IDS logs to Axiom — same homelab, different layer
+- **[PitziLabs/setup-crostini-lab](https://github.com/PitziLabs/setup-crostini-lab)** — Chromebook bootstrap script with Terraform, AWS CLI, and kubectl pre-installed
+- **[cpitzi/setup-xubuntu-lab](https://github.com/cpitzi/setup-xubuntu-lab)** — Xubuntu VM workstation bootstrap — where this Terraform gets written
+
+## Credits
+
+Built iteratively with [Claude](https://claude.ai) (Anthropic). Multi-AZ networking, ECS Fargate task definitions, IAM policy scoping, and ACM/Route 53 wiring all developed through pair-programming sessions with real `terraform plan` and `terraform apply` cycles against a live AWS account.
+
+## License
+
+MIT License — see [LICENSE](LICENSE).
