@@ -1,11 +1,11 @@
-# Content Source: ice_cream_book
+# Content Source: ice-cream-book
 
-This document describes how `aws-lab-infra` consumes content from its companion repository, [`PitziLabs/ice_cream_book`](https://github.com/PitziLabs/ice_cream_book), to build and serve the website at **icecreamtofightover.com**.
+This document describes how `cloud-platform-demo` consumes content from its companion repository, [`PitziLabs/ice-cream-book`](https://github.com/PitziLabs/ice-cream-book), to build and serve the website at **icecreamtofightover.com**.
 
 ## Architecture Overview
 
 ```
-PitziLabs/ice_cream_book          PitziLabs/aws-lab-infra
+PitziLabs/ice-cream-book          PitziLabs/cloud-platform-demo
 ────────────────────────          ─────────────────────────
 
 recipes/*.md                      app/ice_cream_site/
@@ -29,7 +29,7 @@ recipes/*.md                      app/ice_cream_site/
 
 The file `app/ice_cream_site/sync_recipes.py` is the only integration point between the two repos. It:
 
-1. **Locates recipes** via the `RECIPE_SOURCE` environment variable (CI/CD) or falls back to `../ice_cream_book/recipes/` (local dev)
+1. **Locates recipes** via the `RECIPE_SOURCE` environment variable (CI/CD) or falls back to `../ice-cream-book/recipes/` (local dev)
 2. **Parses each recipe** — extracts title, subtitle, difficulty tier, total time, and recipe number from the Markdown structure
 3. **Generates YAML frontmatter** — wraps the extracted metadata in Astro-compatible frontmatter
 4. **Writes content files** to `src/content/recipes/`, where Astro picks them up as a content collection
@@ -63,11 +63,11 @@ Expects both repos cloned as siblings:
 
 ```
 ~/projects/
-├── ice_cream_book/
+├── ice-cream-book/
 │   └── recipes/*.md
-└── aws-lab-infra/
+└── cloud-platform-demo/
     └── app/ice_cream_site/
-        └── sync_recipes.py   # reads ../ice_cream_book/recipes/
+        └── sync_recipes.py   # reads ../ice-cream-book/recipes/
 ```
 
 Run the sync, then build:
@@ -82,7 +82,7 @@ npm run build
 
 In the GitHub Actions workflow, the pipeline:
 
-1. Checks out `ice_cream_book` (or fetches its recipe files)
+1. Checks out `ice-cream-book` (or fetches its recipe files)
 2. Sets `RECIPE_SOURCE` to point at the checkout location
 3. Runs `sync_recipes.py` to generate Astro content
 4. Runs `npm run build` to produce static HTML in `dist/`
@@ -100,7 +100,7 @@ The Dockerfile is minimal — nginx serves the pre-built static files:
 
 ## What Content Changes Mean for This Repo
 
-| Change in ice_cream_book | Impact Here |
+| Change in ice-cream-book | Impact Here |
 |--------------------------|-------------|
 | Edit recipe text | None — picked up automatically on next build |
 | Add a new recipe `.md` | None — `sync_recipes.py` globs `*.md` automatically |
@@ -110,7 +110,7 @@ The Dockerfile is minimal — nginx serves the pre-built static files:
 
 ## What This Repo Does NOT Consume
 
-The `ice_cream_book` repo also contains content that is **not** used by the website:
+The `ice-cream-book` repo also contains content that is **not** used by the website:
 
 - `front_matter/` — Book introduction, philosophy, custard fundamentals (book-only)
 - `back_matter/` — Book closing section (book-only)
@@ -124,7 +124,7 @@ Only `recipes/*.md` crosses the boundary into this repo.
 
 The coupling between the two repos is intentionally thin:
 
-- **Single integration point**: `sync_recipes.py` is the only file that knows about `ice_cream_book`
+- **Single integration point**: `sync_recipes.py` is the only file that knows about `ice-cream-book`
 - **Convention-based**: Parsing relies on Markdown formatting conventions, not a formal schema or API
-- **One-directional**: Content flows from `ice_cream_book` → `aws-lab-infra`, never the reverse
+- **One-directional**: Content flows from `ice-cream-book` → `cloud-platform-demo`, never the reverse
 - **No git submodule**: The repos are independent; content is synced at build time, not linked at the git level

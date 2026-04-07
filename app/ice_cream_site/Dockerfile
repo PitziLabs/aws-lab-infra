@@ -11,7 +11,7 @@ RUN npm ci
 COPY ice_cream_site/ ./
 
 # Copy recipes from the book repo and run the sync
-COPY ice_cream_book/recipes/ /book/recipes/
+COPY ice-cream-book/recipes/ /book/recipes/
 RUN python3 sync_recipes.py || echo "sync_recipes expects relative path, adjusting..."
 
 # Build the site

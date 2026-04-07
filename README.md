@@ -1,4 +1,4 @@
-# aws-lab-infra
+# cloud-platform-demo
 
 A production-grade, Terraform-managed AWS environment built as a portfolio project and learning lab. It hosts a live application at [icecreamtofightover.com](https://icecreamtofightover.com) and demonstrates the kind of infrastructure an ops veteran builds when they bring decades of production experience to modern cloud tooling.
 
@@ -73,7 +73,7 @@ A three-tier web application running on AWS, fully managed by Terraform:
 ## Repository Structure
 
 ```
-aws-lab-infra/
+cloud-platform-demo/
 ├── environments/
 │   └── dev/
 │       ├── main.tf              # Root module — wires all modules together
@@ -153,7 +153,7 @@ With all resources running 24/7, the environment costs approximately $130-140/mo
 
 ## Related Repositories
 
-- [**ice-cream-book**](https://github.com/PitziLabs/ice_cream_book) — Content source for the Astro/Nginx application. Pushes to main trigger cross-repo dispatch to deploy.
+- [**ice-cream-book**](https://github.com/PitziLabs/ice-cream-book) — Content source for the Astro/Nginx application. Pushes to main trigger cross-repo dispatch to deploy.
 - [**PitziLabs**](https://github.com/PitziLabs) — GitHub organization housing this and related projects.
 
 ## License

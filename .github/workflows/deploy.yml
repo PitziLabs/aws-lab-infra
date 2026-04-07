@@ -4,7 +4,7 @@
 #
 # Triggers:
 #   1. Push to main that changes app code or this workflow
-#   2. repository_dispatch from ice_cream_book (recipe content changed)
+#   2. repository_dispatch from ice-cream-book (recipe content changed)
 #   3. Manual workflow_dispatch from GitHub UI
 #
 # Authenticates via OIDC (no stored secrets). Builds the Astro static
@@ -20,7 +20,7 @@ on:
       - 'app/**'
       - '.github/workflows/deploy.yml'
   repository_dispatch:
-    types: [recipe-updated]      # Fired by ice_cream_book when recipes change on main
+    types: [recipe-updated]      # Fired by ice-cream-book when recipes change on main
   workflow_dispatch: {}           # Manual trigger from GitHub UI
 
 permissions:
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone cookbook recipes
-        run: git clone https://github.com/PitziLabs/ice_cream_book.git /tmp/ice_cream_book
+        run: git clone https://github.com/PitziLabs/ice-cream-book.git /tmp/ice-cream-book
 
       # --- Build the Astro static site ---
       - name: Setup Node
@@ -59,7 +59,7 @@ jobs:
         working-directory: app/ice_cream_site
         run: python3 sync_recipes.py
         env:
-          RECIPE_SOURCE: /tmp/ice_cream_book/recipes
+          RECIPE_SOURCE: /tmp/ice-cream-book/recipes
 
       - name: Build static site
         working-directory: app/ice_cream_site

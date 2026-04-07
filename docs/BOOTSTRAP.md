@@ -1,6 +1,6 @@
 # Bootstrap Runbook
 
-This guide walks through deploying the aws-lab-infra stack from scratch. It covers every manual step required before Terraform can manage the environment autonomously.
+This guide walks through deploying the cloud-platform-demo stack from scratch. It covers every manual step required before Terraform can manage the environment autonomously.
 
 **Audience:** Engineers evaluating this project, or anyone standing up their own instance of the stack.
 
@@ -91,8 +91,8 @@ aws dynamodb create-table \
 ## Step 3: Clone the Repository
 
 ```bash
-git clone https://github.com/PitziLabs/aws-lab-infra.git
-cd aws-lab-infra
+git clone https://github.com/PitziLabs/cloud-platform-demo.git
+cd cloud-platform-demo
 ```
 
 ---
@@ -182,7 +182,7 @@ cat > /tmp/terraform-role-trust.json << 'EOF'
       "Condition": {
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:YOUR_ORG/aws-lab-infra:environment:terraform"
+          "token.actions.githubusercontent.com:sub": "repo:YOUR_ORG/cloud-platform-demo:environment:terraform"
         }
       }
     }
@@ -337,7 +337,7 @@ Merge the PR. The Terraform Apply job should:
 
 ### App deploy pipeline
 
-Push a change to the content source repo (e.g., `ice-cream-book`). The cross-repo dispatch should trigger the app deploy workflow in `aws-lab-infra`, building and deploying the container to ECS.
+Push a change to the content source repo (e.g., `ice-cream-book`). The cross-repo dispatch should trigger the app deploy workflow in `cloud-platform-demo`, building and deploying the container to ECS.
 
 ---
 

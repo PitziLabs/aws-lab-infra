@@ -20,7 +20,7 @@ GitHub Actions triggers
         ▼
 ┌─────────────────────────────────┐
 │  Clone cookbook recipes          │
-│  (cpitzi/ice_cream_book)        │
+│  (PitziLabs/ice-cream-book)     │
 └──────────┬──────────────────────┘
            │
            ▼
@@ -28,7 +28,7 @@ GitHub Actions triggers
 │  Build Astro static site        │
 │  Node 20 → npm ci → astro build│
 │  (sync_recipes.py pulls content │
-│   from ice_cream_book repo)     │
+│   from ice-cream-book repo)     │
 └──────────┬──────────────────────┘
            │
            ▼
@@ -81,8 +81,8 @@ GitHub Actions triggers
 | ECS Service | `aws-lab-dev-app` |
 | AWS Region | `us-east-1` |
 | Live site | `https://icecreamtofightover.com` |
-| Content source repo | `cpitzi/ice_cream_book` |
-| Infra repo | `cpitzi/aws-lab-infra` |
+| Content source repo | `PitziLabs/ice-cream-book` |
+| Infra repo | `PitziLabs/cloud-platform-demo` |
 
 ## How It Works — The Short Version
 
@@ -102,10 +102,10 @@ There IS a multi-stage Dockerfile at `app/ice_cream_site/Dockerfile` that does a
 ## OIDC Authentication — How It Actually Works
 
 1. GitHub Actions runner requests a JWT from `token.actions.githubusercontent.com`
-2. The JWT includes claims: repo (`cpitzi/aws-lab-infra`), branch, workflow, actor
+2. The JWT includes claims: repo (`PitziLabs/cloud-platform-demo`), branch, workflow, actor
 3. `aws-actions/configure-aws-credentials@v4` sends the JWT to AWS STS
 4. AWS validates the JWT against our OIDC provider (created in Phase 2)
-5. AWS checks the trust policy: `repo:cpitzi/aws-lab-infra:*`
+5. AWS checks the trust policy: `repo:PitziLabs/cloud-platform-demo:*`
 6. STS issues temporary credentials scoped to the `aws-lab-dev-github-actions` role
 7. Credentials expire when the workflow ends
 
@@ -174,7 +174,7 @@ If ECS tasks are running but showing old content:
 
 ### Recipe sync fails
 
-The `sync_recipes.py` script reads from the `RECIPE_SOURCE` environment variable (set to `/tmp/ice_cream_book/recipes` in the workflow). If the `ice_cream_book` repo clone fails or the path changes, the build will produce an empty site.
+The `sync_recipes.py` script reads from the `RECIPE_SOURCE` environment variable (set to `/tmp/ice-cream-book/recipes` in the workflow). If the `ice-cream-book` repo clone fails or the path changes, the build will produce an empty site.
 
 ### Deployment stabilization timeout
 

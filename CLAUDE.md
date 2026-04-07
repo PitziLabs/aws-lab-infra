@@ -49,7 +49,7 @@ All Terraform commands run from `environments/dev/` (the only environment entry 
 | AWS region | us-east-1 |
 | AWS profile | aws-lab |
 | Domain | icecreamtofightover.com |
-| GitHub org/repo | cpitzi/aws-lab-infra |
+| GitHub org/repo | PitziLabs/cloud-platform-demo |
 | State bucket | aws-lab-tfstate-365184644049 |
 | Lock table | aws-lab-tfstate-lock |
 | AZs | us-east-1a, us-east-1b |

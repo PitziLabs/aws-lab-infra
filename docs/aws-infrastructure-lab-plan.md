@@ -39,7 +39,7 @@ Supporting infrastructure: VPC networking, IAM, KMS encryption, Secrets Manager,
    - `kubectl`
    - `git`
 
-3. **Create GitHub repo** — Name: `aws-lab-infra`. Initialize with:
+3. **Create GitHub repo** — Name: `cloud-platform-demo`. Initialize with:
    - `.gitignore` (Terraform-specific)
    - `README.md`
    - `docs/` folder for decision journaling (ADRs — Architecture Decision Records)
@@ -48,7 +48,7 @@ Supporting infrastructure: VPC networking, IAM, KMS encryption, Secrets Manager,
 
 5. **Establish Terraform directory structure:**
    ```
-   aws-lab-infra/
+   cloud-platform-demo/
    ├── environments/
    │   └── dev/
    │       ├── main.tf

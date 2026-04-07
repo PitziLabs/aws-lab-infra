@@ -63,7 +63,7 @@ module "iam" {
   kms_key_arn               = module.kms.key_arn
   db_credentials_secret_arn = module.secrets.db_credentials_secret_arn
   github_org                = "PitziLabs"
-  github_repo               = "aws-lab-infra"
+  github_repo               = "cloud-platform-demo"
 
   # Phase 4: grant ECS roles access to RDS-managed secrets
   rds_managed_secret_access = true
