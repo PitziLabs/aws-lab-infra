@@ -226,6 +226,15 @@ module "budgets" {
   sns_topic_arn         = module.monitoring.sns_topic_arn
 }
 
+# --- Phase 7: Security Hardening ---
+module "waf" {
+  source = "../../modules/waf"
+
+  project     = var.project
+  environment = var.environment
+  alb_arn     = module.alb.alb_arn
+}
+
 moved {
   from = module.cloudtrail.aws_s3_bucket_policy.cloudtrail
   to   = module.s3.aws_s3_bucket_policy.this[0]

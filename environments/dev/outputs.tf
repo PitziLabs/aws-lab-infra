@@ -158,3 +158,9 @@ output "config_recorder_name" {
   description = "AWS Config recorder name"
   value       = module.aws_config.recorder_name
 }
+
+# Phase 7 outputs
+output "waf_web_acl_arn" {
+  description = "WAF Web ACL ARN"
+  value       = module.waf.web_acl_arn
+}
