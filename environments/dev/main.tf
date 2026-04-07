@@ -1,3 +1,4 @@
+# Test: trigger Terraform pipeline
 terraform {
   required_version = ">= 1.0"
 
