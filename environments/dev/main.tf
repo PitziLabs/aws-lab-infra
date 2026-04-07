@@ -1,3 +1,4 @@
+# Dummy comment to test CI workflows — safe to remove
 terraform {
   required_version = ">= 1.0"
 
