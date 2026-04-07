@@ -41,6 +41,26 @@ resource "aws_sns_topic" "alerts" {
   }
 }
 
+data "aws_iam_policy_document" "sns_topic_policy" {
+  statement {
+    sid    = "AllowBudgetsPublish"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["budgets.amazonaws.com"]
+    }
+
+    actions   = ["SNS:Publish"]
+    resources = [aws_sns_topic.alerts.arn]
+  }
+}
+
+resource "aws_sns_topic_policy" "alerts" {
+  arn    = aws_sns_topic.alerts.arn
+  policy = data.aws_iam_policy_document.sns_topic_policy.json
+}
+
 resource "aws_sns_topic_subscription" "email" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"

@@ -154,11 +154,11 @@ module "s3" {
   kms_key_arn = module.kms.key_arn
 
   # Phase 5: Service access for log delivery
-  aws_account_id          = data.aws_caller_identity.current.account_id
+  aws_account_id           = data.aws_caller_identity.current.account_id
   enable_cloudtrail_access = true
-  cloudtrail_key_prefix   = "cloudtrail"
-  enable_config_access    = true
-  config_key_prefix       = "config"
+  cloudtrail_key_prefix    = "cloudtrail"
+  enable_config_access     = true
+  config_key_prefix        = "config"
 }
 
 module "elasticache" {
@@ -186,7 +186,7 @@ module "monitoring" {
   ecs_service_name = module.ecs.service_name
 
   # ALB dimensions
-  alb_arn_suffix         = module.alb.alb_arn_suffix
+  alb_arn_suffix          = module.alb.alb_arn_suffix
   target_group_arn_suffix = module.alb.target_group_arn_suffix
 
   # RDS dimensions
@@ -215,6 +215,15 @@ module "aws_config" {
   s3_bucket_name = module.s3.bucket_id
   s3_key_prefix  = "config"
   sns_topic_arn  = module.monitoring.sns_topic_arn
+}
+
+module "budgets" {
+  source = "../../modules/budgets"
+
+  project               = local.project
+  environment           = local.environment
+  monthly_budget_amount = "100"
+  sns_topic_arn         = module.monitoring.sns_topic_arn
 }
 
 moved {
