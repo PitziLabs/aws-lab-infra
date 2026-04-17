@@ -102,6 +102,10 @@ DNS ←──→ ALB (certificate ↔ alias record)
 3. Wire it into `environments/dev/main.tf` following the dependency graph order
 4. Export relevant outputs in `environments/dev/outputs.tf`
 
+## Implementation Workflow
+
+When implementation is complete, open a pull request as the final step. Do not stop at "pushed the branch" — the PR is part of the deliverable. PR title should match or clearly refine the issue title. PR body must include `Closes #<number>` so merge closes the issue, plus a short summary of what changed and why. Do not merge the PR yourself; auto-merge is configured and will handle it once checks pass.
+
 ## Key Files for Context
 
 - `environments/dev/main.tf` — how all modules connect (the orchestration layer)
