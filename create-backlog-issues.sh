@@ -155,7 +155,7 @@ gh issue create --repo PitziLabs/foundry-platform-demo \
   --title "Design multi-domain architecture for portfolio sites" \
   --body "## Context
 Multiple domains planned for the platform:
-- \`icecreamtofightover.com\` — cookbook (currently active)
+- \`icecreamtofightwith.com\` — cookbook (currently active)
 - \`chrispitzi.com\` or \`cpitzi.com\` — professional marketing site
 - \`hellavisible.net\` — activism/nonprofit concept (domain owned)
 - \`pitzilabs.dev\` or similar — technical platform brand

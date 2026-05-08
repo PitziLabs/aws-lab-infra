@@ -4,7 +4,7 @@ interface Props {
   description?: string;
 }
 
-const { title = 'Ice Cream to Fight Over', description = 'Recipes You\'ll Fuck Up At Least Once' } = Astro.props;
+const { title = 'Ice Cream to Fight With', description = 'Recipes You\'ll Fuck Up At Least Once' } = Astro.props;
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -192,7 +192,7 @@ const { title = 'Ice Cream to Fight Over', description = 'Recipes You\'ll Fuck U
 </head>
 <body>
   <nav class="site-nav">
-    <a href="/" class="logo">Ice Cream to Fight Over</a>
+    <a href="/" class="logo">Ice Cream to Fight With</a>
     <ul class="nav-links">
       <li><a href="/">Recipes</a></li>
       <li><a href="/about">About</a></li>
@@ -202,7 +202,7 @@ const { title = 'Ice Cream to Fight Over', description = 'Recipes You\'ll Fuck U
   <slot />
 
   <footer class="site-footer">
-    Ice Cream to Fight Over &copy; {new Date().getFullYear()}
+    Ice Cream to Fight With &copy; {new Date().getFullYear()}
   </footer>
 </body>
 </html>

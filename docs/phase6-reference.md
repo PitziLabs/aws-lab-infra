@@ -66,7 +66,7 @@ GitHub Actions triggers
 └─────────────────────────────────┘
            │
            ▼
-    icecreamtofightover.com
+    icecreamtofightwith.com
 ```
 
 ## Key Resources
@@ -80,7 +80,7 @@ GitHub Actions triggers
 | ECS Cluster | `foundry-dev-cluster` |
 | ECS Service | `foundry-dev-app` |
 | AWS Region | `us-east-1` |
-| Live site | `https://icecreamtofightover.com` |
+| Live site | `https://icecreamtofightwith.com` |
 | Content source repo | `PitziLabs/ice-cream-book` |
 | Infra repo | `PitziLabs/foundry-platform-demo` |
 

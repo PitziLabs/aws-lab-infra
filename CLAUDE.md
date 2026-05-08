@@ -48,7 +48,7 @@ All Terraform commands run from `environments/dev/` (the only environment entry 
 | AWS provider | ~> 5.0 (locked at 5.100.0) |
 | AWS region | us-east-1 |
 | AWS profile | foundry |
-| Domain | icecreamtofightover.com |
+| Domain | icecreamtofightwith.com |
 | GitHub org/repo | PitziLabs/foundry-platform-demo |
 | State bucket | foundry-tfstate-`<ACCOUNT_ID>` |
 | Lock table | foundry-tfstate-lock |

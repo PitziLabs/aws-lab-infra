@@ -11,7 +11,7 @@ This guide walks through deploying the foundry-platform-demo stack from scratch.
 ## Prerequisites
 
 - An AWS account with root/admin access
-- A registered domain (this guide uses `icecreamtofightover.com` as the example)
+- A registered domain (this guide uses `icecreamtofightwith.com` as the example)
 - [Terraform](https://developer.hashicorp.com/terraform/install) installed locally (or [tfswitch](https://tfswitch.warrensbox.com/) for version management)
 - [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) configured with a named profile
 - A GitHub account and the [GitHub CLI](https://cli.github.com/) installed
