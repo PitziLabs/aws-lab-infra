@@ -113,4 +113,4 @@ jobs:
           echo "### ✅ Deployment complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Site:** [icecreamtofightover.com](https://icecreamtofightover.com)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Site:** [icecreamtofightwith.com](https://icecreamtofightwith.com)" >> $GITHUB_STEP_SUMMARY

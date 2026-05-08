@@ -1,6 +1,6 @@
 # foundry-platform-demo
 
-A production-grade, Terraform-managed AWS environment built as a portfolio project and learning lab. It hosts a live application at [icecreamtofightover.com](https://icecreamtofightover.com) and demonstrates the kind of infrastructure an ops veteran builds when they bring decades of production experience to modern cloud tooling.
+A production-grade, Terraform-managed AWS environment built as a portfolio project and learning lab. It hosts a live application at [icecreamtofightwith.com](https://icecreamtofightwith.com) and demonstrates the kind of infrastructure an ops veteran builds when they bring decades of production experience to modern cloud tooling.
 
 ## Why This Exists
 

@@ -74,7 +74,7 @@ output "ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 output "route53_name_servers" {
-  description = "Nameservers to configure at Squarespace for icecreamtofightover.com"
+  description = "Nameservers to configure at Squarespace for icecreamtofightwith.com"
   value       = module.dns.zone_name_servers
 }
 

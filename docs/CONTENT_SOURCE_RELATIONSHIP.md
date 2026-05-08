@@ -1,6 +1,6 @@
 # Content Source: ice-cream-book
 
-This document describes how `foundry-platform-demo` consumes content from its companion repository, [`PitziLabs/ice-cream-book`](https://github.com/PitziLabs/ice-cream-book), to build and serve the website at **icecreamtofightover.com**.
+This document describes how `foundry-platform-demo` consumes content from its companion repository, [`PitziLabs/ice-cream-book`](https://github.com/PitziLabs/ice-cream-book), to build and serve the website at **icecreamtofightwith.com**.
 
 ## Architecture Overview
 
@@ -22,7 +22,7 @@ recipes/*.md                      app/ice_cream_site/
                                     modules/ecr/        → container registry
                                     modules/ecs/        → Fargate service
                                     modules/alb/        → load balancer
-                                    modules/dns/        → icecreamtofightover.com
+                                    modules/dns/        → icecreamtofightwith.com
 ```
 
 ## The Bridge: sync_recipes.py
@@ -116,7 +116,7 @@ The `ice-cream-book` repo also contains content that is **not** used by the webs
 - `back_matter/` — Book closing section (book-only)
 - `compile_book.py` / `compile_book.sh` — Compiles all sections into a single Markdown document for the print/digital book
 - `STYLE_GUIDE.md` — Editorial guidelines for recipe writing
-- `Ice_Cream_to_Fight_Over_COMPLETE.md` — The compiled full book
+- `Ice_Cream_to_Fight_With_COMPLETE.md` — The compiled full book
 
 Only `recipes/*.md` crosses the boundary into this repo.
 

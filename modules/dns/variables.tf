@@ -11,12 +11,12 @@ variable "environment" {
 }
 
 variable "domain_name" {
-  description = "Root domain name for the hosted zone (e.g., icecreamtofightover.com)"
+  description = "Root domain name for the hosted zone (e.g., icecreamtofightwith.com)"
   type        = string
 }
 
 variable "subject_alternative_names" {
-  description = "Additional domain names for the TLS certificate (e.g., [\"*.icecreamtofightover.com\"] for wildcard)"
+  description = "Additional domain names for the TLS certificate (e.g., [\"*.icecreamtofightwith.com\"] for wildcard)"
   type        = list(string)
   default     = []
 }
