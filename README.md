@@ -1,12 +1,14 @@
 # foundry-platform-demo
 
-A production-grade, Terraform-managed AWS environment built as a portfolio project and learning lab. It hosts a live application at [icecreamtofightwith.com](https://icecreamtofightwith.com) and demonstrates the kind of infrastructure an ops veteran builds when they bring decades of production experience to modern cloud tooling.
+A Terraform-managed AWS environment built as a personal learning lab. It hosts a live application at [icecreamtofightwith.com](https://icecreamtofightwith.com).
+
+**Authorship:** The Terraform, scripts, workflows, and documentation in this repo are co-written with [Claude](https://claude.ai) (Anthropic). I direct the architecture and review the output; Claude writes the code. I'm an infrastructure operator, not a software engineer — please don't read this repo as a portfolio of coding ability.
 
 ## Why This Exists
 
-Built by an infrastructure operations professional with 25+ years of production experience — bare-metal data centers, 24x7 ops, single-homed environments where every decision had physical consequences. This project bridges that experience into cloud-native architecture: not by reading about it, but by building it, breaking it, and operating it with real traffic.
+I'm an infrastructure operations professional with 25+ years of production experience — bare-metal data centers, 24x7 ops, single-homed environments where every decision had physical consequences. This project is how I learn cloud-native architecture: by specifying what I want, having Claude implement it, and then operating it with real traffic.
 
-Everything here reflects how a production environment should be built, scaled down to a single-account learning lab. No shortcuts on security posture. No placeholder modules. Real CI/CD, real monitoring, real cost controls.
+The intent is to reflect how a production environment should be built, scaled down to a single-account learning lab. No shortcuts on security posture. No placeholder modules. Real CI/CD, real monitoring, real cost controls — but the *code* itself is Claude's, written under my direction.
 
 ## What's Deployed
 
